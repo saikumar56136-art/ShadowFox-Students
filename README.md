@@ -28,3 +28,21 @@ as part of ShadowFox Java Internship - Part 3 Task 2
 - Maven
 
 ## Project Structure
+src/
+├── Student.java          → Data model
+├── DatabaseManager.java  → SQLite operations
+├── StudentGUI.java       → Swing GUI
+└── Main.java             → Entry point
+## Database Schema
+```sql
+CREATE TABLE students (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    course TEXT NOT NULL,
+    grade REAL NOT NULL
+)
+```
+
+## Author
+Sai Kumar - ShadowFox Java Internship 2026
