@@ -11,12 +11,13 @@ public class StudentGUI extends JFrame {
     private JTextField nameField, emailField,
             courseField, gradeField, searchField;
     private DatabaseManager db = new DatabaseManager();
+    private JLabel avgLabel, highLabel, lowLabel;
 
     public StudentGUI() {
         db.connect();
 
         setTitle("ShadowFox Student Management");
-        setSize(800, 600);
+        setSize(800, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
@@ -62,28 +63,65 @@ public class StudentGUI extends JFrame {
         });
 
         // Search bar
-        searchField = new JTextField(20);
+        searchField = new JTextField(15);
         JButton searchBtn = new JButton("🔍 Search");
         JButton showAllBtn = new JButton("📋 Show All");
+        JButton filterBtn = new JButton("📚 Filter Course");
+        JButton statsBtn = new JButton("📊 Statistics");
+
         searchBtn.setBackground(Color.decode("#FF9800"));
         searchBtn.setForeground(Color.WHITE);
         showAllBtn.setBackground(Color.decode("#607D8B"));
         showAllBtn.setForeground(Color.WHITE);
+        filterBtn.setBackground(Color.decode("#9C27B0"));
+        filterBtn.setForeground(Color.WHITE);
+        statsBtn.setBackground(Color.decode("#009688"));
+        statsBtn.setForeground(Color.WHITE);
+
         searchBtn.addActionListener(e -> searchStudent());
         showAllBtn.addActionListener(e -> refreshTable());
+        filterBtn.addActionListener(e -> filterByCourse());
+        statsBtn.addActionListener(e -> showStatistics());
 
         JPanel searchPanel = new JPanel();
         searchPanel.setBackground(Color.decode("#E8EAF6"));
-        searchPanel.add(new JLabel("Search by Name:"));
+        searchPanel.add(new JLabel("Search/Course:"));
         searchPanel.add(searchField);
         searchPanel.add(searchBtn);
+        searchPanel.add(filterBtn);
         searchPanel.add(showAllBtn);
+        searchPanel.add(statsBtn);
+
+        // Stats panel
+        avgLabel = new JLabel("Avg: 0.0");
+        highLabel = new JLabel("Highest: 0.0");
+        lowLabel = new JLabel("Lowest: 0.0");
+
+        avgLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        highLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        lowLabel.setFont(new Font("Arial", Font.BOLD, 13));
+
+        avgLabel.setForeground(Color.decode("#2196F3"));
+        highLabel.setForeground(Color.decode("#4CAF50"));
+        lowLabel.setForeground(Color.decode("#f44336"));
+
+        JPanel statsPanel = new JPanel();
+        statsPanel.setBackground(Color.decode("#E8EAF6"));
+        statsPanel.add(avgLabel);
+        statsPanel.add(Box.createHorizontalStrut(20));
+        statsPanel.add(highLabel);
+        statsPanel.add(Box.createHorizontalStrut(20));
+        statsPanel.add(lowLabel);
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.add(searchPanel, BorderLayout.NORTH);
+        topPanel.add(statsPanel, BorderLayout.SOUTH);
 
         // Form
-        nameField = new JTextField(12);
-        emailField = new JTextField(12);
-        courseField = new JTextField(12);
-        gradeField = new JTextField(12);
+        nameField = new JTextField(15);
+        emailField = new JTextField(15);
+        courseField = new JTextField(15);
+        gradeField = new JTextField(15);
 
         JPanel formPanel = new JPanel(new GridLayout(4, 2, 5, 5));
         formPanel.setBorder(BorderFactory.createTitledBorder(
@@ -127,11 +165,12 @@ public class StudentGUI extends JFrame {
         bottomPanel.add(formPanel, BorderLayout.CENTER);
         bottomPanel.add(btnPanel, BorderLayout.SOUTH);
 
-        add(searchPanel, BorderLayout.NORTH);
+        add(topPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
 
         refreshTable();
+        updateStats();
         setVisible(true);
     }
 
@@ -149,16 +188,12 @@ public class StudentGUI extends JFrame {
                         "❌ All fields are required!");
                 return;
             }
-            if (grade < 0 || grade > 100) {
-                JOptionPane.showMessageDialog(this,
-                        "❌ Grade must be between 0 and 100!");
-                return;
-            }
 
             boolean added = db.addStudent(
                     name, email, course, grade);
             if (added) {
                 refreshTable();
+                updateStats();
                 clearFields();
                 JOptionPane.showMessageDialog(this,
                         "✅ Student added!");
@@ -189,6 +224,7 @@ public class StudentGUI extends JFrame {
                     id, name, email, course, grade);
             if (updated) {
                 refreshTable();
+                updateStats();
                 clearFields();
                 JOptionPane.showMessageDialog(this,
                         "✅ Student updated!");
@@ -212,22 +248,66 @@ public class StudentGUI extends JFrame {
         if (confirm == JOptionPane.YES_OPTION) {
             int id = Integer.parseInt(
                     tableModel.getValueAt(row, 0).toString());
-            boolean deleted = db.deleteStudent(id);
-            if (deleted) {
-                refreshTable();
-                clearFields();
-            }
+            db.deleteStudent(id);
+            refreshTable();
+            updateStats();
+            clearFields();
         }
     }
 
     private void searchStudent() {
         String keyword = searchField.getText().trim();
+        if (keyword.isEmpty()) {
+            refreshTable();
+            return;
+        }
         tableModel.setRowCount(0);
         for (Student s : db.searchByName(keyword)) {
             tableModel.addRow(new Object[]{
                     s.getId(), s.getName(), s.getEmail(),
                     s.getCourse(), s.getGrade()});
         }
+    }
+
+    private void filterByCourse() {
+        String course = searchField.getText().trim();
+        if (course.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please enter a course name to filter!");
+            return;
+        }
+        tableModel.setRowCount(0);
+        for (Student s : db.filterByCourse(course)) {
+            tableModel.addRow(new Object[]{
+                    s.getId(), s.getName(), s.getEmail(),
+                    s.getCourse(), s.getGrade()});
+        }
+        double avg = db.getCourseAverage(course);
+        JOptionPane.showMessageDialog(this,
+                "Course: " + course +
+                        "\nAverage Grade: " +
+                        String.format("%.2f", avg));
+    }
+
+    private void showStatistics() {
+        double avg = db.getAverageGrade();
+        double high = db.getHighestGrade();
+        double low = db.getLowestGrade();
+
+        JOptionPane.showMessageDialog(this,
+                "📊 Grade Statistics\n\n" +
+                        "Average Grade: " + String.format("%.2f", avg) + "\n" +
+                        "Highest Grade: " + high + "\n" +
+                        "Lowest Grade: " + low,
+                "Statistics",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void updateStats() {
+        avgLabel.setText("Avg: " +
+                String.format("%.2f", db.getAverageGrade()));
+        highLabel.setText("Highest: " + db.getHighestGrade());
+        lowLabel.setText("Lowest: " + db.getLowestGrade());
     }
 
     private void refreshTable() {
@@ -237,6 +317,7 @@ public class StudentGUI extends JFrame {
                     s.getId(), s.getName(), s.getEmail(),
                     s.getCourse(), s.getGrade()});
         }
+        updateStats();
     }
 
     private void clearFields() {

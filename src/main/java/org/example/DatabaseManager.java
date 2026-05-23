@@ -151,6 +151,94 @@ public class DatabaseManager {
         return students;
     }
 
+    // Get average grade
+    public double getAverageGrade() {
+        String sql = "SELECT AVG(grade) as avg FROM students";
+        try {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            if (rs.next()) {
+                return rs.getDouble("avg");
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Error: " + e.getMessage());
+        }
+        return 0.0;
+    }
+
+    // Get highest grade
+    public double getHighestGrade() {
+        String sql = "SELECT MAX(grade) as max FROM students";
+        try {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            if (rs.next()) {
+                return rs.getDouble("max");
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Error: " + e.getMessage());
+        }
+        return 0.0;
+    }
+
+    // Get lowest grade
+    public double getLowestGrade() {
+        String sql = "SELECT MIN(grade) as min FROM students";
+        try {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            if (rs.next()) {
+                return rs.getDouble("min");
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Error: " + e.getMessage());
+        }
+        return 0.0;
+    }
+
+    // Filter by course
+    public ArrayList<Student> filterByCourse(String course) {
+        ArrayList<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE " +
+                "LOWER(course) LIKE LOWER(?)";
+        try {
+            PreparedStatement pstmt =
+                    connection.prepareStatement(sql);
+            pstmt.setString(1, "%" + course + "%");
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                students.add(new Student(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("email"),
+                        rs.getString("course"),
+                        rs.getDouble("grade")));
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Filter failed: "
+                    + e.getMessage());
+        }
+        return students;
+    }
+
+    // Get course average
+    public double getCourseAverage(String course) {
+        String sql = "SELECT AVG(grade) as avg FROM students " +
+                "WHERE LOWER(course) = LOWER(?)";
+        try {
+            PreparedStatement pstmt =
+                    connection.prepareStatement(sql);
+            pstmt.setString(1, course);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("avg");
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Error: " + e.getMessage());
+        }
+        return 0.0;
+    }
+
     // Disconnect
     public void disconnect() {
         try {
