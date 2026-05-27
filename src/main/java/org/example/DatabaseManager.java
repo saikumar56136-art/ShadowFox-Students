@@ -239,6 +239,62 @@ public class DatabaseManager {
         return 0.0;
     }
 
+    // Export to CSV
+    public boolean exportToCSV(String filename,
+                               ArrayList<Student> students) {
+        try {
+            java.io.FileWriter writer =
+                    new java.io.FileWriter(filename);
+            writer.write("ID,Name,Email,Course,Grade\n");
+            for (Student s : students) {
+                writer.write(s.getId() + "," +
+                        s.getName() + "," +
+                        s.getEmail() + "," +
+                        s.getCourse() + "," +
+                        s.getGrade() + "\n");
+            }
+            writer.close();
+            System.out.println("✅ Exported to " + filename);
+            return true;
+        } catch (Exception e) {
+            System.out.println("❌ Export failed: "
+                    + e.getMessage());
+            return false;
+        }
+    }
+
+    // Import from CSV
+    public int importFromCSV(String filename) {
+        int count = 0;
+        try {
+            java.io.BufferedReader reader =
+                    new java.io.BufferedReader(
+                            new java.io.FileReader(filename));
+            String line;
+            reader.readLine(); // skip header
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 5) {
+                    String name = parts[1].trim();
+                    String email = parts[2].trim();
+                    String course = parts[3].trim();
+                    double grade = Double.parseDouble(
+                            parts[4].trim());
+                    boolean added = addStudent(
+                            name, email, course, grade);
+                    if (added) count++;
+                }
+            }
+            reader.close();
+            System.out.println("✅ Imported " + count
+                    + " students!");
+        } catch (Exception e) {
+            System.out.println("❌ Import failed: "
+                    + e.getMessage());
+        }
+        return count;
+    }
+
     // Disconnect
     public void disconnect() {
         try {

@@ -3,6 +3,7 @@ package org.example;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
 
 public class StudentGUI extends JFrame {
 
@@ -17,7 +18,7 @@ public class StudentGUI extends JFrame {
         db.connect();
 
         setTitle("ShadowFox Student Management");
-        setSize(800, 650);
+        setSize(800, 680);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
@@ -62,35 +63,57 @@ public class StudentGUI extends JFrame {
             }
         });
 
-        // Search bar
+        // Row 1 - Search
         searchField = new JTextField(15);
         JButton searchBtn = new JButton("🔍 Search");
-        JButton showAllBtn = new JButton("📋 Show All");
         JButton filterBtn = new JButton("📚 Filter Course");
-        JButton statsBtn = new JButton("📊 Statistics");
 
         searchBtn.setBackground(Color.decode("#FF9800"));
         searchBtn.setForeground(Color.WHITE);
-        showAllBtn.setBackground(Color.decode("#607D8B"));
-        showAllBtn.setForeground(Color.WHITE);
         filterBtn.setBackground(Color.decode("#9C27B0"));
         filterBtn.setForeground(Color.WHITE);
-        statsBtn.setBackground(Color.decode("#009688"));
-        statsBtn.setForeground(Color.WHITE);
 
         searchBtn.addActionListener(e -> searchStudent());
-        showAllBtn.addActionListener(e -> refreshTable());
         filterBtn.addActionListener(e -> filterByCourse());
-        statsBtn.addActionListener(e -> showStatistics());
 
-        JPanel searchPanel = new JPanel();
+        JPanel row1 = new JPanel();
+        row1.setBackground(Color.decode("#E8EAF6"));
+        row1.add(new JLabel("Search/Course:"));
+        row1.add(searchField);
+        row1.add(searchBtn);
+        row1.add(filterBtn);
+
+        // Row 2 - Action buttons
+        JButton showAllBtn = new JButton("📋 Show All");
+        JButton statsBtn = new JButton("📊 Statistics");
+        JButton exportBtn = new JButton("📤 Export CSV");
+        JButton importBtn = new JButton("📥 Import CSV");
+
+        showAllBtn.setBackground(Color.decode("#607D8B"));
+        showAllBtn.setForeground(Color.WHITE);
+        statsBtn.setBackground(Color.decode("#009688"));
+        statsBtn.setForeground(Color.WHITE);
+        exportBtn.setBackground(Color.decode("#FF5722"));
+        exportBtn.setForeground(Color.WHITE);
+        importBtn.setBackground(Color.decode("#4CAF50"));
+        importBtn.setForeground(Color.WHITE);
+
+        showAllBtn.addActionListener(e -> refreshTable());
+        statsBtn.addActionListener(e -> showStatistics());
+        exportBtn.addActionListener(e -> exportCSV());
+        importBtn.addActionListener(e -> importCSV());
+
+        JPanel row2 = new JPanel();
+        row2.setBackground(Color.decode("#E8EAF6"));
+        row2.add(showAllBtn);
+        row2.add(statsBtn);
+        row2.add(exportBtn);
+        row2.add(importBtn);
+
+        JPanel searchPanel = new JPanel(new GridLayout(2, 1));
         searchPanel.setBackground(Color.decode("#E8EAF6"));
-        searchPanel.add(new JLabel("Search/Course:"));
-        searchPanel.add(searchField);
-        searchPanel.add(searchBtn);
-        searchPanel.add(filterBtn);
-        searchPanel.add(showAllBtn);
-        searchPanel.add(statsBtn);
+        searchPanel.add(row1);
+        searchPanel.add(row2);
 
         // Stats panel
         avgLabel = new JLabel("Avg: 0.0");
@@ -296,11 +319,57 @@ public class StudentGUI extends JFrame {
 
         JOptionPane.showMessageDialog(this,
                 "📊 Grade Statistics\n\n" +
-                        "Average Grade: " + String.format("%.2f", avg) + "\n" +
+                        "Average Grade: " +
+                        String.format("%.2f", avg) + "\n" +
                         "Highest Grade: " + high + "\n" +
                         "Lowest Grade: " + low,
                 "Statistics",
                 JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void exportCSV() {
+        ArrayList<Student> students = db.getAllStudents();
+        if (students.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "❌ No students to export!");
+            return;
+        }
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setSelectedFile(
+                new java.io.File("students.csv"));
+        int result = fileChooser.showSaveDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            String filename = fileChooser
+                    .getSelectedFile().getAbsolutePath();
+            boolean exported = db.exportToCSV(
+                    filename, students);
+            if (exported) {
+                JOptionPane.showMessageDialog(this,
+                        "✅ Students exported to:\n" + filename);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "❌ Export failed!");
+            }
+        }
+    }
+
+    private void importCSV() {
+        JFileChooser fileChooser = new JFileChooser();
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            String filename = fileChooser
+                    .getSelectedFile().getAbsolutePath();
+            int count = db.importFromCSV(filename);
+            if (count > 0) {
+                refreshTable();
+                updateStats();
+                JOptionPane.showMessageDialog(this,
+                        "✅ Imported " + count + " students!");
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "❌ No students imported!");
+            }
+        }
     }
 
     private void updateStats() {
